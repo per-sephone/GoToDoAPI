@@ -1,11 +1,10 @@
-// post
-// get
-// put
 // delete
 package main
 
 import (
 	"net/http"
+
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -42,12 +41,66 @@ var list = []listItem{
 }
 
 func main() {
-	router := gin.Default()      //initialize gin router
-	router.GET("/list", getList) //get request with endpoint name "list"
-	router.Run("localhost:8080") //run the host
+	router := gin.Default()              //initialize gin router
+	router.GET("/list", getList)         //get request with endpoint name "list"
+	router.GET("/list/:id", getItemByID) //get request for specific item using ID
+	router.POST("/list", postList)       //post request with endpoint name list
+	router.PUT("/list/:id", editList)    //edit a list item by id number
+	router.Run("localhost:8080")         //run the host
 }
 
 // get list items
 func getList(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, list)
+}
+
+func getItemByID(c *gin.Context) {
+	id := c.Param("id")
+
+	for _, item := range list {
+		if item.ID == id {
+			c.IndentedJSON(http.StatusOK, item)
+			return
+		}
+	}
+	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "item not found"})
+}
+
+func postList(c *gin.Context) {
+	var newItem listItem
+
+	if err := c.BindJSON(&newItem); err != nil {
+		return
+	}
+
+	list = append(list, newItem)
+	c.IndentedJSON(http.StatusCreated, newItem)
+}
+
+func editList(c *gin.Context) {
+	id := c.Param("id")
+	var newItem listItem
+
+	if err := c.BindJSON(&newItem); err != nil {
+		return
+	}
+
+	for i, item := range list {
+		if item.ID == id {
+			//swap the item w new item
+			list = replace(i, newItem)
+			break
+		}
+	}
+	c.IndentedJSON(http.StatusCreated, newItem)
+}
+
+func replace(i int, newItem listItem) []listItem {
+	front := list[:i]
+	fmt.Println(front)
+	back := list[i+1:]
+	fmt.Println(back)
+	front = append(front, newItem)
+	front = append(front, back...)
+	return front
 }
