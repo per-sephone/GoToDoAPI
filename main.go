@@ -4,8 +4,6 @@ package main
 import (
 	"net/http"
 
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -41,12 +39,13 @@ var list = []listItem{
 }
 
 func main() {
-	router := gin.Default()              //initialize gin router
-	router.GET("/list", getList)         //get request with endpoint name "list"
-	router.GET("/list/:id", getItemByID) //get request for specific item using ID
-	router.POST("/list", postList)       //post request with endpoint name list
-	router.PUT("/list/:id", editList)    //edit a list item by id number
-	router.Run("localhost:8080")         //run the host
+	router := gin.Default()                    //initialize gin router
+	router.GET("/list", getList)               //get request with endpoint name "list"
+	router.GET("/list/:id", getItemByID)       //get request for specific item using ID
+	router.POST("/list", postList)             //post request with endpoint name list
+	router.PUT("/list/:id", editList)          //edit a list item by id number
+	router.DELETE("/list/:id", deleteItemByID) //delete and item by id
+	router.Run("localhost:8080")               //run the host
 }
 
 // get list items
@@ -89,18 +88,38 @@ func editList(c *gin.Context) {
 		if item.ID == id {
 			//swap the item w new item
 			list = replace(i, newItem)
-			break
+			c.IndentedJSON(http.StatusCreated, newItem)
+			return
 		}
 	}
-	c.IndentedJSON(http.StatusCreated, newItem)
+
+	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "item not found"})
 }
 
 func replace(i int, newItem listItem) []listItem {
 	front := list[:i]
-	fmt.Println(front)
 	back := list[i+1:]
-	fmt.Println(back)
 	front = append(front, newItem)
+	front = append(front, back...)
+	return front
+}
+
+func deleteItemByID(c *gin.Context) {
+	id := c.Param("id")
+
+	for i, item := range list {
+		if item.ID == id {
+			list = delete(i)
+			c.IndentedJSON(http.StatusOK, list)
+			return
+		}
+	}
+	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "item not found"})
+}
+
+func delete(i int) []listItem {
+	front := list[:i]
+	back := list[i+1:]
 	front = append(front, back...)
 	return front
 }
